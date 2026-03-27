@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "better-auth/react";
+import { createAuthClient } from "better-auth/react";
 import { clsx } from "clsx";
 import { 
   LayoutDashboard, 
@@ -21,6 +21,8 @@ import {
 import { useTheme } from "@/lib/ThemeContext";
 import { useState } from "react";
 
+const { signOut: clientSignOut } = createAuthClient();
+
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/goals", label: "Goals", icon: Target },
@@ -38,6 +40,10 @@ export function Sidebar({ userName }: SidebarProps) {
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const handleSignOut = async () => {
+    await clientSignOut.signOut();
+  };
 
   return (
     <>
@@ -107,7 +113,7 @@ export function Sidebar({ userName }: SidebarProps) {
             )}
           </button>
           <button
-            onClick={() => signOut({ callbackUrl: "/login" })}
+            onClick={handleSignOut}
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-danger hover:bg-danger/10 w-full transition-colors"
           >
             <LogOut className="w-5 h-5" />

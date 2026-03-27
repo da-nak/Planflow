@@ -1,10 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import { createAuthClient } from "better-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { signUp } from "better-auth/react";
 import { Target, Loader2 } from "lucide-react";
+
+const { signUp: clientSignUp } = createAuthClient();
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -32,7 +34,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const { error: signUpError } = await signUp.signUp({
+      const { error: signUpError } = await clientSignUp.signUp({
         email,
         password,
         name,
