@@ -1,0 +1,203 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  yearlyGoals   YearlyGoal[]
+  habits        Habit[]
+  timeBlocks    TimeBlock[]
+  analytics     AnalyticsSnapshot[]
+
+  accounts      Account[]
+  sessions      Session[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model YearlyGoal {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  deadline    DateTime?
+  notes       String?
+  status      String   @default("ACTIVE")
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  monthlyGoals MonthlyGoal[]
+}
+
+model MonthlyGoal {
+  id             String     @id @default(cuid())
+  yearlyGoalId    String
+  yearlyGoal     YearlyGoal @relation(fields: [yearlyGoalId], references: [id], onDelete: Cascade)
+
+  title          String
+  description    String?
+  deadline       DateTime?
+  notes          String?
+  status         String     @default("ACTIVE")
+
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  weeklyPlans    WeeklyPlan[]
+}
+
+model WeeklyPlan {
+  id           String      @id @default(cuid())
+  monthlyGoalId String
+  monthlyGoal  MonthlyGoal @relation(fields: [monthlyGoalId], references: [id], onDelete: Cascade)
+
+  title        String
+  description  String?
+  startDate    DateTime
+  endDate      DateTime
+  notes        String?
+  status       String      @default("ACTIVE")
+
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  tasks        Task[]
+}
+
+model Task {
+  id            String      @id @default(cuid())
+  weeklyPlanId  String
+  weeklyPlan    WeeklyPlan  @relation(fields: [weeklyPlanId], references: [id], onDelete: Cascade)
+
+  title         String
+  description   String?
+  priority      String      @default("MEDIUM")
+  status        String      @default("PENDING")
+  effortValue   Int         @default(1)
+
+  deadline      DateTime?
+  reminder      DateTime?
+  notes         String?
+  category      String      @default("OTHER")
+
+  isRecurring   Boolean     @default(false)
+
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  completedAt   DateTime?
+
+  timeBlocks    TimeBlock[]
+}
+
+model Habit {
+  id          String     @id @default(cuid())
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?
+  category    String     @default("PERSONAL")
+  targetDays  String     @default("[]")
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  logs        HabitLog[]
+}
+
+model HabitLog {
+  id        String   @id @default(cuid())
+  habitId   String
+  habit     Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  date      DateTime
+  status    String   @default("COMPLETED")
+
+  createdAt DateTime @default(now())
+}
+
+model TimeBlock {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  category    String   @default("OTHER")
+
+  startTime   DateTime
+  endTime     DateTime
+  isAllDay    Boolean  @default(false)
+
+  taskId      String?
+  task        Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model AnalyticsSnapshot {
+  id                 String   @id @default(cuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  period             String
+  startDate          DateTime
+  endDate            DateTime
+
+  taskCompletionRate Float
+  habitConsistency   Float
+  timeAllocation     String   @default("{}")
+  productivityScore  Float
+
+  createdAt          DateTime @default(now())
+}
