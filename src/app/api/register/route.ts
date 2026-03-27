@@ -25,7 +25,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const hashedPassword = await bcrypt.hash(password, 12);
+    let hashedPassword: string;
+    try {
+      hashedPassword = await bcrypt.hash(password, 12);
+    } catch (hashError) {
+      console.error("Bcrypt hash error:", hashError);
+      return NextResponse.json(
+        { error: "Password hashing failed", details: String(hashError) },
+        { status: 500 }
+      );
+    }
 
     const user = await prisma.user.create({
       data: {
@@ -40,10 +49,15 @@ export async function POST(request: NextRequest) {
       name: user.name,
       email: user.email,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Registration error:", error);
     return NextResponse.json(
-      { error: "Something went wrong", details: String(error) },
+      { 
+        error: "Something went wrong", 
+        details: error?.message || String(error),
+        code: error?.code,
+        meta: error?.meta
+      },
       { status: 500 }
     );
   }
