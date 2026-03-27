@@ -1,20 +1,4 @@
 import { prisma } from "./prisma";
-import { auth } from "./auth";
-
-export async function getCurrentUser() {
-  const session = await auth();
-  if (!session?.user?.email) return null;
-  
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-  });
-  return user;
-}
-
-export async function getUser() {
-  const user = await getCurrentUser();
-  return user;
-}
 
 export type Task = {
   id: string;

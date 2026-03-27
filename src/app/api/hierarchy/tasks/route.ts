@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/lib/auth";
 
-async function getUserId() {
-  const session = await auth();
+async function getUserId(headers: Headers) {
+  const session = await auth.api.getSession({ headers });
   if (!session?.user?.email) return null;
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
@@ -11,7 +11,7 @@ async function getUserId() {
   return user?.id;
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const weeklyPlanId = searchParams.get("weeklyPlanId");
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(tasks);
     }
 
-    const userId = await getUserId();
+    const userId = await getUserId(new Headers(request.headers));
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

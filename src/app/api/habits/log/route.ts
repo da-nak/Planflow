@@ -4,7 +4,10 @@ import { auth } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
+    const session = await auth.api.getSession({
+      headers: request.headers,
+    });
+    
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
