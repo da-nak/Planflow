@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { signUp } from "better-auth/react";
 import { Target, Loader2 } from "lucide-react";
 
 export default function RegisterPage() {
@@ -31,16 +32,14 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+      const { error: signUpError } = await signUp.signUp({
+        email,
+        password,
+        name,
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Something went wrong");
+      if (signUpError) {
+        setError(signUpError.message || "Something went wrong");
       } else {
         router.push("/login?registered=true");
       }
