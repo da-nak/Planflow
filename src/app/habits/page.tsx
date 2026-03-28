@@ -1,4 +1,5 @@
-import { getUser, getHabits } from "@/lib/data";
+import { getUser } from "@/lib/server-data";
+import { getHabits } from "@/lib/data";
 import { HabitsClient } from "./HabitsClient";
 
 export default async function HabitsPage() {

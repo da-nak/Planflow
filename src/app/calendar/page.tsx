@@ -1,4 +1,5 @@
-import { getUser, getTimeBlocks } from "@/lib/data";
+import { getUser } from "@/lib/server-data";
+import { getTimeBlocks } from "@/lib/data";
 import { CalendarClient } from "./CalendarClient";
 
 export default async function CalendarPage() {

@@ -23,4 +23,4 @@ export const auth = betterAuth({
   },
 });
 
-export const { signIn, signOut, signUp } = auth;
+

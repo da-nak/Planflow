@@ -1,15 +1,4 @@
 import { prisma } from "./prisma";
-import { auth } from "./auth";
-
-export async function getUser() {
-  const session = await auth.api.getSession();
-  if (!session?.user?.email) return null;
-  
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-  });
-  return user;
-}
 
 export async function getHabits(userId: string) {
   return prisma.habit.findMany({
@@ -412,19 +401,6 @@ export async function uncompleteTask(id: string) {
       status: "PENDING",
       completedAt: null,
     },
-  });
-}
-
-export async function getHabits(userId: string) {
-  return prisma.habit.findMany({
-    where: { userId },
-    include: {
-      logs: {
-        orderBy: { date: "desc" },
-        take: 30,
-      },
-    },
-    orderBy: { createdAt: "asc" },
   });
 }
 

@@ -1,4 +1,5 @@
-import { getUser, getHierarchicalData, calculateStreak, type HierarchicalData } from "@/lib/data";
+import { getUser } from "@/lib/server-data";
+import { getHierarchicalData, calculateStreak, type HierarchicalData } from "@/lib/data";
 import { GoalsClient } from "./GoalsClient";
 
 export default async function GoalsPage() {

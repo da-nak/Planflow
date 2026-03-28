@@ -21,7 +21,7 @@ import {
 import { useTheme } from "@/lib/ThemeContext";
 import { useState } from "react";
 
-const { signOut: clientSignOut } = createAuthClient();
+const clientSignOut = createAuthClient();
 
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Target, Loader2 } from "lucide-react";
 
-const { signUp: clientSignUp } = createAuthClient();
+const clientSignUp = createAuthClient();
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -34,7 +34,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const { error: signUpError } = await clientSignUp.signUp({
+      const { error: signUpError } = await clientSignUp.signUp.email({
         email,
         password,
         name,

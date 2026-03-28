@@ -1,11 +1,19 @@
 import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export async function getSession() {
-  return await auth.api.getSession({
-    headers: typeof window !== "undefined" 
-      ? new Headers({ cookie: document.cookie }) 
-      : undefined,
-  });
+  try {
+    if (typeof window !== "undefined") {
+      return await auth.api.getSession({
+        headers: new Headers({ cookie: document.cookie }),
+      });
+    }
+    return await auth.api.getSession({
+      headers: await headers()
+    });
+  } catch {
+    return null;
+  }
 }
 
 export async function requireAuth() {

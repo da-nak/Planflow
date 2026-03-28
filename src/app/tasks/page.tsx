@@ -1,4 +1,5 @@
-import { getUser, getHierarchicalData, type HierarchicalData } from "@/lib/data";
+import { getUser } from "@/lib/server-data";
+import { getHierarchicalData, type HierarchicalData } from "@/lib/data";
 import { TasksClient } from "./TasksClient";
 
 export default async function TasksPage() {

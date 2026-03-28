@@ -3,18 +3,23 @@ import "./globals.css";
 import { ThemeProvider } from "@/lib/ThemeContext";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
 
 export const metadata: Metadata = {
   title: "PlanFlow - Personal Planning & Analytics",
   description: "Manage your life across multiple time horizons",
 };
 
+export const dynamic = 'force-dynamic';
+
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const session = await auth.api.getSession();
+  const session = await auth.api.getSession({
+    headers: await headers()
+  });
 
   return (
     <html lang="en" suppressHydrationWarning>

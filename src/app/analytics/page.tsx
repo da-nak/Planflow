@@ -1,6 +1,9 @@
-import { getUser, getHabits, getHierarchicalData, getAnalyticsData } from "@/lib/data";
+import { getUser } from "@/lib/server-data";
+import { getHabits, getHierarchicalData, getAnalyticsData } from "@/lib/data";
 import { AnalyticsClient } from "./AnalyticsClient";
 import { startOfWeek, endOfWeek } from "date-fns";
+
+export const dynamic = 'force-dynamic';
 
 export default async function AnalyticsPage() {
   const user = await getUser();

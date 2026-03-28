@@ -1,4 +1,5 @@
-import { getUser, getHabits, getHierarchicalData, calculateStreak, type HierarchicalData } from "@/lib/data";
+import { getUser } from "@/lib/server-data";
+import { getHabits, getHierarchicalData, calculateStreak, type HierarchicalData } from "@/lib/data";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui";
 import { Badge } from "@/components/ui";
