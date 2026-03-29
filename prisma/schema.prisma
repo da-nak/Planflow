@@ -31,7 +31,7 @@ model Account {
   userId            String
   accountId         String
   providerId        String
-  providerType      String
+  providerType      String?
   accessToken       String?
   refreshToken      String?
   accessTokenExpiresAt DateTime?
