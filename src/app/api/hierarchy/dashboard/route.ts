@@ -1,23 +1,26 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { createClient } from "@/lib/supabase/server";
 import { getHierarchicalData } from "@/lib/data";
 
 export async function GET(request: Request) {
   try {
-    const session = await auth.api.getSession({ headers: new Headers(request.headers) });
-    if (!session?.user) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = await import("@/lib/prisma").then(m => m.prisma.user.findUnique({
-      where: { email: session.user.email! },
-    }));
+    const dbUser = await prisma.user.findUnique({
+      where: { email: user.email },
+    });
 
-    if (!user) {
+    if (!dbUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const data = await getHierarchicalData(user.id);
+    const data = await getHierarchicalData(dbUser.id);
 
     return NextResponse.json(data);
   } catch (error) {

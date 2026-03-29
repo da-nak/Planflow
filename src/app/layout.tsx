@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/lib/ThemeContext";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { auth } from "@/lib/auth";
-import { headers } from "next/headers";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "PlanFlow - Personal Planning & Analytics",
@@ -17,16 +16,15 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const session = await auth.api.getSession({
-    headers: await headers()
-  });
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-full font-sans">
         <ThemeProvider>
           <div className="flex min-h-screen">
-            <Sidebar userName={session?.user?.name} />
+            <Sidebar userName={user?.user_metadata?.name} />
             <main className="flex-1 lg:ml-64">
               {children}
             </main>

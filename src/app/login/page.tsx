@@ -1,15 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { createAuthClient } from "better-auth/react";
+import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Target, Loader2 } from "lucide-react";
 
-const clientSignIn = createAuthClient();
-
 export default function LoginPage() {
   const router = useRouter();
+  const supabase = createClient();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -20,23 +19,18 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
-    try {
-      const { error: authError } = await clientSignIn.signIn.email({
-        email,
-        password,
-      });
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-      if (authError) {
-        setError(authError.message || "Invalid email or password");
-      } else {
-        router.push("/");
-        router.refresh();
-      }
-    } catch {
-      setError("Something went wrong");
-    } finally {
-      setLoading(false);
+    if (authError) {
+      setError(authError.message || "Invalid email or password");
+    } else {
+      router.push("/");
+      router.refresh();
     }
+    setLoading(false);
   };
 
   return (

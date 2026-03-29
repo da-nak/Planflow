@@ -1,25 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({
-      headers: request.headers,
-    });
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
     
-    if (!session?.user?.email) {
+    if (!user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
     const { habitId, date, status } = body;
 
+    const dbUser = await prisma.user.findUnique({
+      where: { email: user.email },
+    });
+
     const habit = await prisma.habit.findUnique({
       where: { id: habitId },
     });
 
-    if (!habit || habit.userId !== session.user.id) {
+    if (!habit || habit.userId !== dbUser?.id) {
       return NextResponse.json({ error: "Habit not found" }, { status: 404 });
     }
 

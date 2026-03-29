@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 
-async function getUserId(headers: Headers) {
-  const session = await auth.api.getSession({ headers });
-  if (!session?.user?.email) return null;
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
+async function getUserId() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user?.email) return null;
+  const dbUser = await prisma.user.findUnique({
+    where: { email: user.email },
   });
-  return user?.id;
+  return dbUser?.id;
 }
 
 export async function GET(request: Request) {
@@ -62,7 +63,7 @@ export async function GET(request: Request) {
       return NextResponse.json(tasks);
     }
 
-    const userId = await getUserId(new Headers(request.headers));
+    const userId = await getUserId();
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

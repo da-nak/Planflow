@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { createAuthClient } from "better-auth/react";
+import { usePathname, useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { clsx } from "clsx";
 import { 
   LayoutDashboard, 
@@ -21,8 +21,6 @@ import {
 import { useTheme } from "@/lib/ThemeContext";
 import { useState } from "react";
 
-const clientSignOut = createAuthClient();
-
 const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/goals", label: "Goals", icon: Target },
@@ -38,11 +36,14 @@ interface SidebarProps {
 
 export function Sidebar({ userName }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const supabase = createClient();
   const { theme, toggleTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleSignOut = async () => {
-    await clientSignOut.signOut();
+    await supabase.auth.signOut();
+    router.push("/login");
   };
 
   return (

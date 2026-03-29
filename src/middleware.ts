@@ -1,34 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
-import { headers } from "next/headers";
-import { auth } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 
 export async function middleware(request: NextRequest) {
-  let session = null;
-  try {
-    session = await auth.api.getSession({
-      headers: await headers()
-    });
-  } catch {
-    // Session check failed, treat as not logged in
-  }
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  const isLoggedIn = !!session;
+  const isLoggedIn = !!user;
   const isOnLoginPage = request.nextUrl.pathname.startsWith("/login");
   const isOnRegisterPage = request.nextUrl.pathname.startsWith("/register");
   const isOnAuthPages = isOnLoginPage || isOnRegisterPage;
 
   if (!isLoggedIn && !isOnAuthPages) {
-    return NextResponse.redirect(new URL("/login", request.nextUrl));
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
   if (isLoggedIn && isOnAuthPages) {
-    return NextResponse.redirect(new URL("/", request.nextUrl));
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  runtime: "nodejs",
   matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
 };
