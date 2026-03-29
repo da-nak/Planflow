@@ -7,9 +7,19 @@ export async function getUser() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user?.email) return null;
     
-    const dbUser = await prisma.user.findUnique({
+    let dbUser = await prisma.user.findUnique({
       where: { email: user.email },
     });
+
+    if (!dbUser) {
+      dbUser = await prisma.user.create({
+        data: {
+          email: user.email,
+          name: user.user_metadata?.name || user.email.split("@")[0],
+        },
+      });
+    }
+    
     return dbUser;
   } catch {
     return null;
