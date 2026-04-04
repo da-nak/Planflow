@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/lib/ThemeContext";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { LayoutWrapper } from "@/components/ai/LayoutWrapper";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -26,7 +27,7 @@ export default async function RootLayout({
           <div className="flex min-h-screen">
             <Sidebar userName={user?.user_metadata?.name} />
             <main className="flex-1 lg:ml-64">
-              {children}
+              <LayoutWrapper>{children}</LayoutWrapper>
             </main>
           </div>
         </ThemeProvider>
