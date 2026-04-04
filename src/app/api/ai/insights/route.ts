@@ -69,7 +69,7 @@ export async function GET() {
     eveningCompletions,
   };
 
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   
   if (!apiKey) {
     const fallback = generateFallbackSuggestions(personality, completionLogs, stats);
@@ -78,16 +78,16 @@ export async function GET() {
 
   try {
     const completionHours = completionLogs.map((log) => log.completionHour || 10);
-    const suggestions = await getAISuggestionsFromOpenAI(personality, completionHours, stats, apiKey);
+    const suggestions = await getAISuggestionsFromGemini(personality, completionHours, stats, apiKey);
     return NextResponse.json({ ...suggestions, stats });
   } catch (error) {
-    console.error("OpenAI API error:", error);
+    console.error("Gemini API error:", error);
     const fallback = generateFallbackSuggestions(personality, completionLogs, stats);
     return NextResponse.json({ ...fallback, stats });
   }
 }
 
-async function getAISuggestionsFromOpenAI(
+async function getAISuggestionsFromGemini(
   personality: "morning_person" | "night_owl" | "flexible",
   completionHours: number[],
   stats: AISuggestions["stats"],
@@ -123,29 +123,28 @@ Return ONLY valid JSON in this exact format:
   "insight": "Your personalized insight here (max 100 chars, no generic motivation quotes)"
 }`;
 
-  const response = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }],
-      max_tokens: 300,
-      temperature: 0.7,
-    }),
-  });
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { maxOutputTokens: 300, temperature: 0.7 },
+      }),
+    }
+  );
 
   if (!response.ok) {
-    throw new Error(`OpenAI API error: ${response.status}`);
+    const errorText = await response.text();
+    throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
   }
 
   const data = await response.json();
-  const content = data.choices[0]?.message?.content;
+  const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
   if (!content) {
-    throw new Error("No response from OpenAI");
+    throw new Error("No response from Gemini");
   }
 
   const cleaned = content.replace(/```json\n?|```\n?/g, "").trim();

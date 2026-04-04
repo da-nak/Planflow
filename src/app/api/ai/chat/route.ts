@@ -34,10 +34,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Message required" }, { status: 400 });
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return NextResponse.json({
-      message: "AI features require an API key. Please configure OPENAI_API_KEY in Vercel environment variables."
+      message: "AI features require an API key. Please configure GEMINI_API_KEY in Vercel environment variables."
     });
   }
 
@@ -50,34 +50,30 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "system", content: `Current user context:\n${userContext}` },
-          { role: "user", content: message },
-        ],
-        max_tokens: 500,
-        temperature: 0.7,
-      }),
-    });
+    const fullPrompt = `${SYSTEM_PROMPT}\n\nCurrent user context:\n${userContext}`;
+    
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: fullPrompt }, { text: message }] }],
+          generationConfig: { maxOutputTokens: 500, temperature: 0.7 },
+        }),
+      }
+    );
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("OpenAI API error:", response.status, errorText);
+      console.error("Gemini API error:", response.status, errorText);
       return NextResponse.json({
-        message: `OpenAI error (${response.status}). Please try again in a moment.`
+        message: `Gemini error (${response.status}). Please try again in a moment.`
       });
     }
 
     const data = await response.json();
-    const reply = data.choices[0]?.message?.content;
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
     return NextResponse.json({ message: reply || "I'm not sure how to respond to that." });
   } catch (error: any) {
