@@ -37,11 +37,17 @@ export async function POST(request: NextRequest) {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return NextResponse.json({
-      message: "AI features require an API key. Please configure OPENAI_API_KEY."
+      message: "AI features require an API key. Please configure OPENAI_API_KEY in Vercel environment variables."
     });
   }
 
-  const userContext = await buildUserContext(user.id);
+  let userContext: string;
+  try {
+    userContext = await buildUserContext(user.id);
+  } catch (dbError) {
+    console.error("Database error:", dbError);
+    userContext = "User context unavailable (database error).";
+  }
 
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -63,17 +69,21 @@ export async function POST(request: NextRequest) {
     });
 
     if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
+      const errorText = await response.text();
+      console.error("OpenAI API error:", response.status, errorText);
+      return NextResponse.json({
+        message: `OpenAI error (${response.status}). Please try again in a moment.`
+      });
     }
 
     const data = await response.json();
     const reply = data.choices[0]?.message?.content;
 
     return NextResponse.json({ message: reply || "I'm not sure how to respond to that." });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Chat API error:", error);
     return NextResponse.json({
-      message: "Sorry, I'm having trouble thinking right now. Please try again."
+      message: `Error: ${error?.message || "Unknown error"}. Please try again.`
     });
   }
 }
