@@ -201,3 +201,20 @@ model AnalyticsSnapshot {
 
   createdAt          DateTime @default(now())
 }
+
+model TaskCompletionLog {
+  id                       String   @id @default(cuid())
+  userId                   String
+  taskId                   String
+  
+  scheduledTime            DateTime?
+  actualCompletionTime     DateTime
+  completionDelayMinutes    Float?
+  completionHour           Int?
+  completionDayOfWeek      Int?
+  
+  createdAt                DateTime @default(now())
+
+  @@index([userId])
+  @@index([taskId])
+}

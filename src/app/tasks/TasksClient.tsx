@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PageContainer } from "@/components/layout/PageContainer";
 import { Card } from "@/components/ui";
 import { Button } from "@/components/ui";
@@ -9,9 +9,23 @@ import { Select } from "@/components/ui";
 import { Modal } from "@/components/ui";
 import { Badge } from "@/components/ui";
 import { Toggle } from "@/components/ui";
-import { Plus, Trash2, Edit2, CheckSquare, Clock, Filter } from "lucide-react";
+import { Plus, Trash2, Edit2, CheckSquare, Clock, Filter, Sparkles, Sun, Moon } from "lucide-react";
 import { clsx } from "clsx";
 import { format } from "date-fns";
+
+type AISuggestions = {
+  personality: "morning_person" | "night_owl" | "flexible";
+  deepWorkSlots: string[];
+  shallowSlots: string[];
+  insight: string;
+  stats: {
+    totalCompleted: number;
+    successRate: number;
+    avgDelayMinutes: number;
+    morningCompletions: number;
+    eveningCompletions: number;
+  };
+};
 
 type Task = {
   id: string;
@@ -95,6 +109,7 @@ export function TasksClient({ userId, initialHierarchy, weeklyPlans }: TasksClie
     priority: "ALL",
     category: "ALL",
   });
+  const [aiSuggestions, setAiSuggestions] = useState<AISuggestions | null>(null);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -106,6 +121,13 @@ export function TasksClient({ userId, initialHierarchy, weeklyPlans }: TasksClie
     isRecurring: false,
     effortValue: 1,
   });
+
+  useEffect(() => {
+    fetch("/api/ai/insights")
+      .then((res) => res.json())
+      .then((data) => setAiSuggestions(data))
+      .catch(console.error);
+  }, []);
 
   const allTasks = getAllTasks(hierarchy);
 
@@ -210,6 +232,16 @@ export function TasksClient({ userId, initialHierarchy, weeklyPlans }: TasksClie
       });
 
       if (response.ok) {
+        if (newStatus === "COMPLETED") {
+          await fetch("/api/ai/log-completion", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              taskId: task.id,
+              scheduledTime: task.deadline,
+            }),
+          });
+        }
         window.location.reload();
       }
     } catch (error) {
@@ -251,6 +283,43 @@ export function TasksClient({ userId, initialHierarchy, weeklyPlans }: TasksClie
         )
       }
     >
+      {aiSuggestions && (
+        <div className="mb-6 p-6 rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/20 backdrop-blur-sm">
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="w-5 h-5 text-primary" />
+            <h3 className="font-semibold text-foreground">Smart Insights</h3>
+            <Badge variant="primary" className="ml-auto">
+              {aiSuggestions.personality === "morning_person" && (
+                <span className="flex items-center gap-1"><Sun className="w-3 h-3" /> Morning Person</span>
+              )}
+              {aiSuggestions.personality === "night_owl" && (
+                <span className="flex items-center gap-1"><Moon className="w-3 h-3" /> Night Owl</span>
+              )}
+              {aiSuggestions.personality === "flexible" && "Flexible"}
+            </Badge>
+          </div>
+          <p className="text-sm text-foreground-secondary mb-4">{aiSuggestions.insight}</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+            <div className="bg-background/50 rounded-lg p-3">
+              <p className="text-foreground-muted mb-1">Best for Deep Work</p>
+              <p className="font-medium text-primary">{aiSuggestions.deepWorkSlots.join(", ")}</p>
+            </div>
+            <div className="bg-background/50 rounded-lg p-3">
+              <p className="text-foreground-muted mb-1">Good for Shallow Tasks</p>
+              <p className="font-medium text-foreground-secondary">{aiSuggestions.shallowSlots.join(", ")}</p>
+            </div>
+            <div className="bg-background/50 rounded-lg p-3">
+              <p className="text-foreground-muted mb-1">Success Rate</p>
+              <p className="font-medium text-success">{aiSuggestions.stats.successRate}%</p>
+            </div>
+            <div className="bg-background/50 rounded-lg p-3">
+              <p className="text-foreground-muted mb-1">Avg Delay</p>
+              <p className="font-medium text-foreground-secondary">{aiSuggestions.stats.avgDelayMinutes} min</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {weeklyPlans.length === 0 && (
         <div className="mb-6 p-4 bg-warning/10 border border-warning/20 rounded-lg">
           <p className="text-warning font-medium">
