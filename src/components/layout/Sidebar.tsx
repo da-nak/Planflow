@@ -19,7 +19,7 @@ import {
   User,
   Timer,
   Users,
-  FileText
+  BookOpen
 } from "lucide-react";
 import { useTheme } from "@/lib/ThemeContext";
 import { useState } from "react";
@@ -31,6 +31,7 @@ const navItems = [
   { href: "/habits", label: "Habits", icon: Repeat },
   { href: "/tasks", label: "Tasks", icon: CheckSquare },
   { href: "/focus", label: "Focus Timer", icon: Timer },
+  { href: "/journal", label: "Journal", icon: BookOpen },
   { href: "/accountability", label: "Partners", icon: Users },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
 ];

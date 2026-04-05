@@ -4,7 +4,7 @@ import { PageContainer } from "@/components/layout/PageContainer";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui";
 import { Badge } from "@/components/ui";
 import { Progress } from "@/components/ui";
-import { Target, CheckSquare, Flame, TrendingUp, Clock, ChevronRight, Calendar } from "lucide-react";
+import { Target, CheckSquare, Flame, TrendingUp, Clock, ChevronRight, Calendar, BookOpen, CheckCircle, Circle } from "lucide-react";
 import Link from "next/link";
 import { format } from "date-fns";
 
@@ -44,7 +44,27 @@ function getCompletedTasks(hierarchy: HierarchicalData) {
 }
 
 function getPendingTasks(hierarchy: HierarchicalData) {
-  return getAllTasks(hierarchy).filter(t => t.status === "PENDING").length;
+  return getAllTasks(hierarchy).filter(t => t.status === "PENDING");
+}
+
+function getTodayTasks(hierarchy: HierarchicalData) {
+  const today = new Date();
+  const allTasks = getAllTasks(hierarchy);
+  return allTasks.filter(t => {
+    if (!t.deadline) return false;
+    const deadline = new Date(t.deadline);
+    return deadline.toDateString() === today.toDateString();
+  });
+}
+
+function getTodayCompletedTasks(hierarchy: HierarchicalData) {
+  const today = new Date();
+  const allTasks = getAllTasks(hierarchy);
+  return allTasks.filter(t => {
+    if (!t.completedAt) return false;
+    const completed = new Date(t.completedAt);
+    return completed.toDateString() === today.toDateString();
+  });
 }
 
 export default async function DashboardPage() {
@@ -76,9 +96,48 @@ export default async function DashboardPage() {
 
   const recentTasks = getRecentTasks(hierarchy, 4);
   const activeYearlyGoals = hierarchy.filter(g => g.status === "ACTIVE");
+  const todayTasks = getTodayTasks(hierarchy);
+  const todayCompletedTasks = getTodayCompletedTasks(hierarchy);
+  const todayHabitsCompleted = habitStats.filter(h => h.completedToday).length;
+  const todayProgress = todayTasks.length > 0 
+    ? Math.round((todayCompletedTasks.length / todayTasks.length) * 100) 
+    : todayHabitsCompleted > 0 ? Math.round((todayHabitsCompleted / habitStats.length) * 100) : 0;
 
   return (
     <PageContainer title="Dashboard" description="Welcome back! Here&apos;s your overview.">
+      <Card className="mb-8 bg-gradient-to-r from-primary/10 to-info/10 border-primary/20">
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-xl bg-primary/20">
+                <CheckCircle className="w-6 h-6 text-primary" />
+              </div>
+              <div>
+                <p className="text-sm text-foreground-secondary">Today's Progress</p>
+                <p className="text-2xl font-bold">{todayProgress}%</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-6">
+              <div className="text-center">
+                <p className="text-lg font-semibold">{todayCompletedTasks.length}/{todayTasks.length}</p>
+                <p className="text-xs text-foreground-muted">Tasks Done</p>
+              </div>
+              <div className="text-center">
+                <p className="text-lg font-semibold">{todayHabitsCompleted}/{habitStats.length}</p>
+                <p className="text-xs text-foreground-muted">Habits Done</p>
+              </div>
+              <Link 
+                href="/journal"
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary-hover transition-colors"
+              >
+                <BookOpen className="w-4 h-4" />
+                Journal
+              </Link>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <Card>
           <CardContent className="pt-0">
@@ -102,7 +161,7 @@ export default async function DashboardPage() {
               </div>
               <div>
                 <p className="text-sm text-foreground-muted">Pending Tasks</p>
-                <p className="text-2xl font-bold text-foreground">{pendingTasks}</p>
+                <p className="text-2xl font-bold text-foreground">{pendingTasks.length}</p>
               </div>
             </div>
           </CardContent>
