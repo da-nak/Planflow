@@ -105,7 +105,7 @@ export default async function DashboardPage() {
 
   return (
     <PageContainer title="Dashboard" description="Welcome back! Here&apos;s your overview.">
-      <Card className="mb-8 bg-gradient-to-r from-primary/10 to-info/10 border-primary/20">
+      <Card data-tour="daily-summary" className="mb-8 bg-gradient-to-r from-primary/10 to-info/10 border-primary/20">
         <CardContent className="pt-6">
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-4">
@@ -138,7 +138,7 @@ export default async function DashboardPage() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div data-tour="goals" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <Card>
           <CardContent className="pt-0">
             <div className="flex items-center gap-3">

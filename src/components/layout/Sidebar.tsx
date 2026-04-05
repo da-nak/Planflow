@@ -75,13 +75,23 @@ export function Sidebar({ userName }: SidebarProps) {
         </div>
 
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto scrollbar-thin">
-          {navItems.map((item) => {
+          {navItems.map((item, index) => {
             const isActive = pathname === item.href;
+            const tourMap: Record<string, string> = {
+              "/habits": "habits",
+              "/tasks": "tasks",
+              "/focus": "focus",
+              "/journal": "journal",
+              "/accountability": "partners",
+              "/analytics": "analytics",
+              "/calendar": "calendar",
+            };
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
+                data-tour={tourMap[item.href]}
                 className={clsx(
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                   isActive
