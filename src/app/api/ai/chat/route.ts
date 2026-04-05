@@ -2,6 +2,24 @@ import { NextRequest, NextResponse } from "next/server";
 import { getUser } from "@/lib/server-data";
 import { prisma } from "@/lib/prisma";
 
+async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3): Promise<Response> {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const response = await fetch(url, options);
+    
+    if (response.status !== 429) {
+      return response;
+    }
+    
+    if (attempt < maxRetries - 1) {
+      const delay = Math.pow(2, attempt) * 1000;
+      console.log(`Rate limited. Retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  return fetch(url, options);
+}
+
 const SYSTEM_PROMPT = `You are PlanFlow AI, a helpful and friendly productivity assistant integrated into the PlanFlow app. You help users manage their tasks, habits, and improve their productivity.
 
 You have access to the user's:
@@ -52,7 +70,7 @@ export async function POST(request: NextRequest) {
   try {
     const fullPrompt = `${SYSTEM_PROMPT}\n\nCurrent user context:\n${userContext}`;
     
-    const response = await fetch(
+    const response = await fetchWithRetry(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
       {
         method: "POST",

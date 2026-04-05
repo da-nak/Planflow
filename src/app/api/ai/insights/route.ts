@@ -2,6 +2,24 @@ import { NextResponse } from "next/server";
 import { getUser } from "@/lib/server-data";
 import { prisma } from "@/lib/prisma";
 
+async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 3): Promise<Response> {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const response = await fetch(url, options);
+    
+    if (response.status !== 429) {
+      return response;
+    }
+    
+    if (attempt < maxRetries - 1) {
+      const delay = Math.pow(2, attempt) * 1000;
+      console.log(`Rate limited. Retrying in ${delay}ms (attempt ${attempt + 1}/${maxRetries})`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  return fetch(url, options);
+}
+
 export type AISuggestions = {
   personality: "morning_person" | "night_owl" | "flexible";
   deepWorkSlots: string[];
@@ -123,7 +141,7 @@ Return ONLY valid JSON in this exact format:
   "insight": "Your personalized insight here (max 100 chars, no generic motivation quotes)"
 }`;
 
-  const response = await fetch(
+  const response = await fetchWithRetry(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
     {
       method: "POST",
