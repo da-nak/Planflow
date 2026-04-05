@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui";
 import { Button } from "@/components/ui";
 import { Input } from "@/components/ui";
 import { Badge } from "@/components/ui";
+import { Chat } from "@/components/chat/Chat";
 import { 
   Users, 
   Link as LinkIcon, 
@@ -15,14 +16,15 @@ import {
   UserPlus,
   TrendingUp,
   CheckSquare,
-  Flame
+  Flame,
+  MessageCircle
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 interface Partner {
   id: string;
-  name: string;
-  email: string;
+  name: string | null;
+  email: string | null;
   stats: {
     completedToday: number;
     weeklyCompleted: number;
@@ -49,6 +51,7 @@ export default function AccountabilityPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
   const [notification, setNotification] = useState<string | null>(null);
+  const [activeChat, setActiveChat] = useState<Partner | null>(null);
   const supabase = createClient();
 
   const showNotification = (message: string) => {
@@ -262,17 +265,23 @@ export default function AccountabilityPage() {
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                             <span className="text-primary font-semibold">
-                              {partner.name?.[0]?.toUpperCase() || "?"}
+                              {partner.name?.[0]?.toUpperCase() || partner.email?.[0]?.toUpperCase() || "?"}
                             </span>
                           </div>
                           <div>
-                            <p className="font-medium">{partner.name || "Anonymous"}</p>
+                            <p className="font-medium">{partner.name || "Partner"}</p>
                             <p className="text-sm text-foreground-muted">{partner.email}</p>
                           </div>
                         </div>
-                        <Button size="sm" variant="ghost" onClick={() => removePartner(partner.id)}>
-                          Remove
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={() => setActiveChat(partner)}>
+                            <MessageCircle className="w-4 h-4 mr-1" />
+                            Chat
+                          </Button>
+                          <Button size="sm" variant="ghost" onClick={() => removePartner(partner.id)}>
+                            Remove
+                          </Button>
+                        </div>
                       </div>
                       <div className="grid grid-cols-3 gap-3">
                         <div className="text-center p-2 rounded bg-background-secondary">
@@ -319,12 +328,19 @@ export default function AccountabilityPage() {
                 <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
                   <span className="text-xs font-semibold text-primary">3</span>
                 </div>
-                <p>Both of you can see each other's daily progress, weekly plans, and streaks.</p>
+                <p>Both of you can see each other's progress and chat to stay motivated.</p>
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
+
+      {activeChat && (
+        <Chat 
+          partner={activeChat} 
+          onClose={() => setActiveChat(null)} 
+        />
+      )}
     </PageContainer>
   );
 }

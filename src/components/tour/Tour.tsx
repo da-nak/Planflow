@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useTour, TOUR_STEPS } from "@/lib/tour/TourContext";
+import { createClient } from "@/lib/supabase/client";
 import { X, ChevronLeft, ChevronRight, HelpCircle } from "lucide-react";
 
 export function Tour() {
@@ -169,18 +170,28 @@ export function Tour() {
 
 export function TourTrigger() {
   const { startTour, hasSeenTour } = useTour();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const supabase = createClient();
 
-  if (hasSeenTour) {
-    return (
-      <button
-        onClick={startTour}
-        className="fixed bottom-4 right-4 z-30 p-3 rounded-full bg-primary text-white shadow-lg hover:bg-primary-hover transition-colors"
-        title="Take the tour"
-      >
-        <HelpCircle className="w-5 h-5" />
-      </button>
-    );
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setIsAuthenticated(!!user);
+    };
+    checkAuth();
+  }, []);
+
+  if (!isAuthenticated) {
+    return null;
   }
 
-  return null;
+  return (
+    <button
+      onClick={startTour}
+      className="fixed bottom-4 right-4 z-30 p-3 rounded-full bg-primary text-white shadow-lg hover:bg-primary-hover transition-colors"
+      title="Take the tour"
+    >
+      <HelpCircle className="w-5 h-5" />
+    </button>
+  );
 }

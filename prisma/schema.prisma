@@ -23,6 +23,8 @@ model User {
   analytics        AnalyticsSnapshot[]
   focusSessions    FocusSession[]
   journalEntries   JournalEntry[]
+  messagesSent     ChatMessage[] @relation("MessagesSent")
+  messagesReceived ChatMessage[] @relation("MessagesReceived")
 
   sentInvites      AccountabilityInvite[] @relation("SentInvites")
   receivedInvites  AccountabilityInvite[] @relation("ReceivedInvites")
@@ -302,5 +304,24 @@ model JournalEntry {
   updatedAt    DateTime  @updatedAt
 
   @@index([userId])
+  @@index([createdAt])
+}
+
+model ChatMessage {
+  id          String    @id @default(cuid())
+  senderId    String
+  sender      User      @relation("MessagesSent", fields: [senderId], references: [id], onDelete: Cascade)
+  
+  receiverId  String
+  receiver    User      @relation("MessagesReceived", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  content     String
+
+  read        Boolean   @default(false)
+
+  createdAt   DateTime  @default(now())
+
+  @@index([senderId])
+  @@index([receiverId])
   @@index([createdAt])
 }

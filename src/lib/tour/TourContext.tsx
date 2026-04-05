@@ -77,15 +77,12 @@ export const TOUR_STEPS = [
 export function TourProvider({ children }: { children: ReactNode }) {
   const [isTourOpen, setIsTourOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
-  const [hasSeenTour, setHasSeenTour] = useState(false);
+  const [hasSeenTour, setHasSeenTour] = useState(true);
   const supabase = createClient();
 
   useEffect(() => {
     const seen = localStorage.getItem("planflow_tour_seen");
     setHasSeenTour(!!seen);
-    if (!seen) {
-      setIsTourOpen(true);
-    }
   }, []);
 
   const startTour = () => {
