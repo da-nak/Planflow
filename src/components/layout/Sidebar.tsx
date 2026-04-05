@@ -16,7 +16,10 @@ import {
   Menu,
   X,
   LogOut,
-  User
+  User,
+  Timer,
+  Users,
+  FileText
 } from "lucide-react";
 import { useTheme } from "@/lib/ThemeContext";
 import { useState } from "react";
@@ -27,6 +30,8 @@ const navItems = [
   { href: "/calendar", label: "Calendar", icon: Calendar },
   { href: "/habits", label: "Habits", icon: Repeat },
   { href: "/tasks", label: "Tasks", icon: CheckSquare },
+  { href: "/focus", label: "Focus Timer", icon: Timer },
+  { href: "/accountability", label: "Partners", icon: Users },
   { href: "/analytics", label: "Analytics", icon: BarChart3 },
 ];
 

@@ -17,10 +17,16 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  yearlyGoals   YearlyGoal[]
-  habits        Habit[]
-  timeBlocks    TimeBlock[]
-  analytics     AnalyticsSnapshot[]
+  yearlyGoals      YearlyGoal[]
+  habits           Habit[]
+  timeBlocks       TimeBlock[]
+  analytics        AnalyticsSnapshot[]
+  focusSessions    FocusSession[]
+
+  sentInvites      AccountabilityInvite[] @relation("SentInvites")
+  receivedInvites  AccountabilityInvite[] @relation("ReceivedInvites")
+  partnersFrom     AccountabilityPartner[] @relation("PartnerFrom")
+  partnersTo       AccountabilityPartner[] @relation("PartnerTo")
 
   accounts      Account[]
   sessions      Session[]
@@ -206,7 +212,7 @@ model TaskCompletionLog {
   id                       String   @id @default(cuid())
   userId                   String
   taskId                   String
-  
+   
   scheduledTime            DateTime?
   actualCompletionTime     DateTime
   completionDelayMinutes    Float?
@@ -217,4 +223,57 @@ model TaskCompletionLog {
 
   @@index([userId])
   @@index([taskId])
+}
+
+model FocusSession {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  duration    Int      @default(25)
+  type        String   @default("work")
+  taskId      String?
+  taskTitle   String?
+
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+
+  @@index([userId])
+}
+
+model AccountabilityInvite {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  message     String?
+  
+  fromUserId  String
+  fromUser    User      @relation("SentInvites", fields: [fromUserId], references: [id], onDelete: Cascade)
+  
+  toUserId    String?
+  toUser      User?     @relation("ReceivedInvites", fields: [toUserId], references: [id], onDelete: SetNull)
+  
+  status      String    @default("PENDING")
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime
+
+  @@index([code])
+  @@index([fromUserId])
+  @@index([toUserId])
+}
+
+model AccountabilityPartner {
+  id          String    @id @default(cuid())
+  
+  fromUserId  String
+  fromUser    User      @relation("PartnerFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  
+  toUserId    String
+  toUser      User      @relation("PartnerTo", fields: [toUserId], references: [id], onDelete: Cascade)
+  
+  status      String    @default("ACTIVE")
+  createdAt   DateTime  @default(now())
+
+  @@unique([fromUserId, toUserId])
+  @@index([fromUserId])
+  @@index([toUserId])
 }
