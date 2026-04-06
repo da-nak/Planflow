@@ -2,23 +2,23 @@
 
 :root {
   --background: #FFFFFF;
-  --background-secondary: #F8FAFC;
-  --background-tertiary: #F1F5F9;
-  --foreground: #0F172A;
-  --foreground-secondary: #475569;
-  --foreground-muted: #94A3B8;
-  --border: #E2E8F0;
+  --background-secondary: #F0F9FF;
+  --background-tertiary: #E0F2FE;
+  --foreground: #0C4A6E;
+  --foreground-secondary: #0369A1;
+  --foreground-muted: #38BDF8;
+  --border: #BAE6FD;
   
-  --primary: #6366F1;
-  --primary-hover: #4F46E5;
-  --success: #22C55E;
+  --primary: #0EA5E9;
+  --primary-hover: #0284C7;
+  --success: #10B981;
   --warning: #F59E0B;
   --danger: #EF4444;
-  --info: #3B82F6;
+  --info: #6366F1;
   
-  --work: #6366F1;
+  --work: #0EA5E9;
   --study: #8B5CF6;
-  --health: #22C55E;
+  --health: #10B981;
   --personal: #F59E0B;
   --social: #EC4899;
   --other: #6B7280;
@@ -27,13 +27,13 @@
 }
 
 .dark {
-  --background: #0F172A;
-  --background-secondary: #1E293B;
-  --background-tertiary: #334155;
-  --foreground: #F8FAFC;
-  --foreground-secondary: #CBD5E1;
-  --foreground-muted: #64748B;
-  --border: #334155;
+  --background: #0C4A6E;
+  --background-secondary: #164E63;
+  --background-tertiary: #1E6B8C;
+  --foreground: #F0F9FF;
+  --foreground-secondary: #BAE6FD;
+  --foreground-muted: #7DD3FC;
+  --border: #164E63;
 }
 
 @theme inline {
