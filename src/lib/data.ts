@@ -774,70 +774,116 @@ function calculateCategoryBreakdown(
     .sort((a, b) => b.total - a.total);
 }
 
-export async function getDailyTasks(userId: string, targetDate?: Date) {
-  const where: { userId: string; targetDate?: { gte: Date; lte: Date } } = { userId };
-  if (targetDate) {
-    const startOfDay = new Date(targetDate);
-    startOfDay.setHours(0, 0, 0, 0);
-    const endOfDay = new Date(targetDate);
-    endOfDay.setHours(23, 59, 59, 999);
-    where.targetDate = {
-      gte: startOfDay,
-      lte: endOfDay,
-    };
-  }
-  return prisma.dailyTask.findMany({
-    where,
+export type Challenge = {
+  id: string;
+  userId: string;
+  title: string;
+  description: string | null;
+  category: string;
+  status: string;
+  priority: string;
+  createdAt: Date;
+  updatedAt: Date;
+  responsePlan: ResponsePlan | null;
+};
+
+export type ResponsePlan = {
+  id: string;
+  challengeId: string;
+  title: string;
+  description: string | null;
+  steps: string[];
+  deadline: Date | null;
+  status: string;
+  progress: number;
+  createdAt: Date;
+  updatedAt: Date;
+  completedAt: Date | null;
+};
+
+export async function getChallenges(userId: string) {
+  return prisma.challenge.findMany({
+    where: { userId },
+    include: { responsePlan: true },
     orderBy: { createdAt: "desc" },
   });
 }
 
-export async function createDailyTask(data: {
-  userId: string;
-  title: string;
-  description?: string;
-  priority?: string;
-  status?: string;
-  category?: string;
-  targetDate: Date;
-  effortValue?: number;
-}) {
-  return prisma.dailyTask.create({ data });
-}
-
-export async function updateDailyTask(id: string, data: {
-  title?: string;
-  description?: string;
-  priority?: string;
-  status?: string;
-  category?: string;
-  targetDate?: Date;
-  completedAt?: Date | null;
-  effortValue?: number;
-}) {
-  return prisma.dailyTask.update({ where: { id }, data });
-}
-
-export async function deleteDailyTask(id: string) {
-  return prisma.dailyTask.delete({ where: { id } });
-}
-
-export async function completeDailyTask(id: string) {
-  return prisma.dailyTask.update({
+export async function getChallenge(id: string) {
+  return prisma.challenge.findUnique({
     where: { id },
-    data: {
-      status: "COMPLETED",
-      completedAt: new Date(),
-    },
+    include: { responsePlan: true },
   });
 }
 
-export async function uncompleteDailyTask(id: string) {
-  return prisma.dailyTask.update({
+export async function createChallenge(data: {
+  userId: string;
+  title: string;
+  description?: string;
+  category?: string;
+  priority?: string;
+}) {
+  return prisma.challenge.create({ data });
+}
+
+export async function updateChallenge(id: string, data: {
+  title?: string;
+  description?: string;
+  category?: string;
+  status?: string;
+  priority?: string;
+}) {
+  return prisma.challenge.update({ where: { id }, data });
+}
+
+export async function deleteChallenge(id: string) {
+  return prisma.challenge.delete({ where: { id } });
+}
+
+export async function createResponsePlan(data: {
+  challengeId: string;
+  title: string;
+  description?: string;
+  steps?: string[];
+  deadline?: Date;
+}) {
+  return prisma.responsePlan.create({ 
+    data: {
+      ...data,
+      steps: data.steps ? JSON.stringify(data.steps) : "[]",
+    }
+  });
+}
+
+export async function updateResponsePlan(id: string, data: {
+  title?: string;
+  description?: string;
+  steps?: string[];
+  deadline?: Date | null;
+  status?: string;
+  progress?: number;
+  completedAt?: Date | null;
+}) {
+  return prisma.responsePlan.update({ 
+    where: { id }, 
+    data: {
+      ...data,
+      steps: data.steps ? JSON.stringify(data.steps) : undefined,
+    }
+  });
+}
+
+export async function deleteResponsePlan(id: string) {
+  return prisma.responsePlan.delete({ where: { id } });
+}
+
+export async function completeResponsePlan(id: string) {
+  return prisma.responsePlan.update({
     where: { id },
     data: {
-      status: "PENDING",
-      completedAt: null,
+      status: "COMPLETED",
+      progress: 100,
+      completedAt: new Date(),
     },
   });
 }

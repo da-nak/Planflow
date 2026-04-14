@@ -9,7 +9,7 @@ import { Select } from "@/components/ui";
 import { Modal } from "@/components/ui";
 import { Badge } from "@/components/ui";
 import { Toggle } from "@/components/ui";
-import { Plus, Trash2, Edit2, CheckSquare, Clock, Filter, Sparkles, Sun, Moon, Calendar } from "lucide-react";
+import { Plus, Trash2, Edit2, CheckSquare, Clock, Sparkles, Sun, Moon, AlertTriangle, Shield, ChevronDown, ChevronUp, Target } from "lucide-react";
 import { clsx } from "clsx";
 import { format } from "date-fns";
 
@@ -43,19 +43,29 @@ type Task = {
   completedAt: Date | null;
 };
 
-type DailyTask = {
+type ResponsePlan = {
+  id: string;
+  challengeId: string;
+  title: string;
+  description: string | null;
+  steps: string;
+  deadline: Date | null;
+  status: string;
+  progress: number;
+  createdAt: Date;
+  completedAt: Date | null;
+};
+
+type Challenge = {
   id: string;
   userId: string;
   title: string;
   description: string | null;
-  priority: string;
-  status: string;
-  effortValue: number;
-  targetDate: Date;
   category: string;
-  notes: string | null;
+  status: string;
+  priority: string;
   createdAt: Date;
-  completedAt: Date | null;
+  responsePlan: ResponsePlan | null;
 };
 
 type WeeklyPlan = {
@@ -105,7 +115,11 @@ const categoryColors: Record<string, string> = {
   PERSONAL: "personal",
   SOCIAL: "social",
   OTHER: "other",
+  GENERAL: "default",
 };
+
+type BadgeVariant = "default" | "primary" | "success" | "warning" | "danger" | "info" |
+  "work" | "study" | "health" | "personal" | "social" | "other";
 
 function getAllTasks(hierarchy: HierarchicalData): Task[] {
   return hierarchy.flatMap(yg => 
@@ -118,16 +132,19 @@ function getAllTasks(hierarchy: HierarchicalData): Task[] {
 export function TasksClient({ userId, initialHierarchy, weeklyPlans }: TasksClientProps) {
   const [hierarchy, setHierarchy] = useState<HierarchicalData>(initialHierarchy);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isDailyTaskModalOpen, setIsDailyTaskModalOpen] = useState(false);
+  const [isChallengeModalOpen, setIsChallengeModalOpen] = useState(false);
+  const [isResponsePlanModalOpen, setIsResponsePlanModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [editingDailyTask, setEditingDailyTask] = useState<DailyTask | null>(null);
-  const [dailyTasks, setDailyTasks] = useState<DailyTask[]>([]);
+  const [editingChallenge, setEditingChallenge] = useState<Challenge | null>(null);
+  const [selectedChallengeForPlan, setSelectedChallengeForPlan] = useState<Challenge | null>(null);
+  const [challenges, setChallenges] = useState<Challenge[]>([]);
+  const [expandedChallenge, setExpandedChallenge] = useState<string | null>(null);
   const [filter, setFilter] = useState<{ status: string; priority: string; category: string }>({
     status: "ALL",
     priority: "ALL",
     category: "ALL",
   });
-  const [dailyFilter, setDailyFilter] = useState<{ status: string; priority: string; category: string }>({
+  const [challengeFilter, setChallengeFilter] = useState<{ status: string; priority: string; category: string }>({
     status: "ALL",
     priority: "ALL",
     category: "ALL",
@@ -144,14 +161,17 @@ export function TasksClient({ userId, initialHierarchy, weeklyPlans }: TasksClie
     isRecurring: false,
     effortValue: 1,
   });
-  const [dailyFormData, setDailyFormData] = useState({
+  const [challengeFormData, setChallengeFormData] = useState({
     title: "",
     description: "",
     priority: "MEDIUM",
-    status: "PENDING",
-    category: "OTHER",
-    targetDate: format(new Date(), "yyyy-MM-dd"),
-    effortValue: 1,
+    category: "GENERAL",
+  });
+  const [responsePlanFormData, setResponsePlanFormData] = useState({
+    title: "",
+    description: "",
+    steps: "",
+    deadline: "",
   });
 
   useEffect(() => {
@@ -162,9 +182,9 @@ export function TasksClient({ userId, initialHierarchy, weeklyPlans }: TasksClie
   }, []);
 
   useEffect(() => {
-    fetch("/api/daily-tasks")
+    fetch("/api/challenges")
       .then((res) => res.json())
-      .then((data) => setDailyTasks(data))
+      .then((data) => setChallenges(data))
       .catch(console.error);
   }, []);
 
@@ -177,10 +197,10 @@ export function TasksClient({ userId, initialHierarchy, weeklyPlans }: TasksClie
     return true;
   });
 
-  const filteredDailyTasks = dailyTasks.filter((task) => {
-    if (dailyFilter.status !== "ALL" && task.status !== dailyFilter.status) return false;
-    if (dailyFilter.priority !== "ALL" && task.priority !== dailyFilter.priority) return false;
-    if (dailyFilter.category !== "ALL" && task.category !== dailyFilter.category) return false;
+  const filteredChallenges = challenges.filter((challenge) => {
+    if (challengeFilter.status !== "ALL" && challenge.status !== challengeFilter.status) return false;
+    if (challengeFilter.priority !== "ALL" && challenge.priority !== challengeFilter.priority) return false;
+    if (challengeFilter.category !== "ALL" && challenge.category !== challengeFilter.category) return false;
     return true;
   });
 
@@ -295,101 +315,166 @@ export function TasksClient({ userId, initialHierarchy, weeklyPlans }: TasksClie
     }
   };
 
-  const handleOpenDailyTaskModal = (task?: DailyTask) => {
-    if (task) {
-      setEditingDailyTask(task);
-      setDailyFormData({
-        title: task.title,
-        description: task.description || "",
-        priority: task.priority,
-        status: task.status,
-        category: task.category,
-        targetDate: format(new Date(task.targetDate), "yyyy-MM-dd"),
-        effortValue: task.effortValue,
+  const handleOpenChallengeModal = (challenge?: Challenge) => {
+    if (challenge) {
+      setEditingChallenge(challenge);
+      setChallengeFormData({
+        title: challenge.title,
+        description: challenge.description || "",
+        priority: challenge.priority,
+        category: challenge.category,
       });
     } else {
-      setEditingDailyTask(null);
-      setDailyFormData({
+      setEditingChallenge(null);
+      setChallengeFormData({
         title: "",
         description: "",
         priority: "MEDIUM",
-        status: "PENDING",
-        category: "OTHER",
-        targetDate: format(new Date(), "yyyy-MM-dd"),
-        effortValue: 1,
+        category: "GENERAL",
       });
     }
-    setIsDailyTaskModalOpen(true);
+    setIsChallengeModalOpen(true);
   };
 
-  const handleSubmitDailyTask = async () => {
-    if (!dailyFormData.title.trim()) return;
+  const handleOpenResponsePlanModal = (challenge: Challenge) => {
+    setSelectedChallengeForPlan(challenge);
+    if (challenge.responsePlan) {
+      setResponsePlanFormData({
+        title: challenge.responsePlan.title,
+        description: challenge.responsePlan.description || "",
+        steps: JSON.parse(challenge.responsePlan.steps || "[]").join("\n"),
+        deadline: challenge.responsePlan.deadline ? format(new Date(challenge.responsePlan.deadline), "yyyy-MM-dd") : "",
+      });
+    } else {
+      setResponsePlanFormData({
+        title: "",
+        description: "",
+        steps: "",
+        deadline: "",
+      });
+    }
+    setIsResponsePlanModalOpen(true);
+  };
+
+  const handleSubmitChallenge = async () => {
+    if (!challengeFormData.title.trim()) return;
 
     try {
-      const response = await fetch("/api/daily-tasks", {
-        method: editingDailyTask ? "PUT" : "POST",
+      const response = await fetch("/api/challenges", {
+        method: editingChallenge ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: editingDailyTask?.id,
-          title: dailyFormData.title,
-          description: dailyFormData.description || undefined,
-          priority: dailyFormData.priority,
-          status: dailyFormData.status,
-          category: dailyFormData.category,
-          targetDate: new Date(dailyFormData.targetDate),
-          effortValue: dailyFormData.effortValue,
+          id: editingChallenge?.id,
+          title: challengeFormData.title,
+          description: challengeFormData.description || undefined,
+          priority: challengeFormData.priority,
+          category: challengeFormData.category,
         }),
       });
 
       if (response.ok) {
-        const newTask = await response.json();
-        if (editingDailyTask) {
-          setDailyTasks(dailyTasks.map(t => t.id === editingDailyTask.id ? newTask : t));
+        const newChallenge = await response.json();
+        if (editingChallenge) {
+          setChallenges(challenges.map(c => c.id === editingChallenge.id ? { ...newChallenge, responsePlan: editingChallenge.responsePlan } : c));
         } else {
-          setDailyTasks([newTask, ...dailyTasks]);
+          setChallenges([{ ...newChallenge, responsePlan: null }, ...challenges]);
         }
-        setIsDailyTaskModalOpen(false);
+        setIsChallengeModalOpen(false);
       }
     } catch (error) {
-      console.error("Failed to save daily task:", error);
+      console.error("Failed to save challenge:", error);
     }
   };
 
-  const handleDeleteDailyTask = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this daily task?")) return;
+  const handleSubmitResponsePlan = async () => {
+    if (!responsePlanFormData.title.trim()) return;
 
     try {
-      const response = await fetch(`/api/daily-tasks?id=${id}`, {
+      const stepsArray = responsePlanFormData.steps.split("\n").filter(s => s.trim());
+      
+      if (selectedChallengeForPlan?.responsePlan) {
+        const response = await fetch("/api/response-plans", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: selectedChallengeForPlan.responsePlan.id,
+            title: responsePlanFormData.title,
+            description: responsePlanFormData.description || undefined,
+            steps: stepsArray,
+            deadline: responsePlanFormData.deadline || undefined,
+          }),
+        });
+
+        if (response.ok) {
+          const updatedPlan = await response.json();
+          setChallenges(challenges.map(c => 
+            c.id === selectedChallengeForPlan.id ? { ...c, responsePlan: updatedPlan } : c
+          ));
+        }
+      } else {
+        const response = await fetch("/api/response-plans", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            challengeId: selectedChallengeForPlan?.id,
+            title: responsePlanFormData.title,
+            description: responsePlanFormData.description || undefined,
+            steps: stepsArray,
+            deadline: responsePlanFormData.deadline || undefined,
+          }),
+        });
+
+        if (response.ok) {
+          const newPlan = await response.json();
+          setChallenges(challenges.map(c => 
+            c.id === selectedChallengeForPlan?.id ? { ...c, responsePlan: newPlan } : c
+          ));
+        }
+      }
+      setIsResponsePlanModalOpen(false);
+    } catch (error) {
+      console.error("Failed to save response plan:", error);
+    }
+  };
+
+  const handleDeleteChallenge = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this challenge?")) return;
+
+    try {
+      const response = await fetch(`/api/challenges?id=${id}`, {
         method: "DELETE",
       });
 
       if (response.ok) {
-        setDailyTasks(dailyTasks.filter(t => t.id !== id));
+        setChallenges(challenges.filter(c => c.id !== id));
       }
     } catch (error) {
-      console.error("Failed to delete daily task:", error);
+      console.error("Failed to delete challenge:", error);
     }
   };
 
-  const handleDailyTaskStatusToggle = async (task: DailyTask) => {
-    const newStatus = task.status === "COMPLETED" ? "PENDING" : "COMPLETED";
+  const handleProgressUpdate = async (challenge: Challenge, progress: number) => {
+    if (!challenge.responsePlan) return;
 
     try {
-      const response = await fetch("/api/daily-tasks", {
+      const response = await fetch("/api/response-plans", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          id: task.id,
-          status: newStatus,
+          id: challenge.responsePlan.id,
+          progress,
+          status: progress === 100 ? "COMPLETED" : "IN_PROGRESS",
         }),
       });
 
       if (response.ok) {
-        const updatedTask = await response.json();
-        setDailyTasks(dailyTasks.map(t => t.id === task.id ? updatedTask : t));
+        const updatedPlan = await response.json();
+        setChallenges(challenges.map(c => 
+          c.id === challenge.id ? { ...c, responsePlan: updatedPlan } : c
+        ));
       }
     } catch (error) {
-      console.error("Failed to update daily task status:", error);
+      console.error("Failed to update progress:", error);
     }
   };
 
@@ -421,16 +506,16 @@ export function TasksClient({ userId, initialHierarchy, weeklyPlans }: TasksClie
               <Plus className="w-4 h-4 mr-2" />
               Add Task
             </Button>
-            <Button variant="secondary" onClick={() => handleOpenDailyTaskModal()}>
-              <Calendar className="w-4 h-4 mr-2" />
-              Add Daily To-Do
+            <Button variant="secondary" onClick={() => handleOpenChallengeModal()}>
+              <Target className="w-4 h-4 mr-2" />
+              Add Challenge
             </Button>
           </>
         ) : (
           <>
-            <Button variant="secondary" onClick={() => handleOpenDailyTaskModal()}>
-              <Calendar className="w-4 h-4 mr-2" />
-              Add Daily To-Do
+            <Button variant="secondary" onClick={() => handleOpenChallengeModal()}>
+              <Target className="w-4 h-4 mr-2" />
+              Add Challenge
             </Button>
           </>
         )
@@ -476,29 +561,29 @@ export function TasksClient({ userId, initialHierarchy, weeklyPlans }: TasksClie
       <div className="mb-2 mt-8">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-            <Calendar className="w-5 h-5" />
-            Daily To-Dos
+            <AlertTriangle className="w-5 h-5" />
+            Challenges & Response Plans
           </h2>
-          <Button variant="secondary" size="sm" onClick={() => handleOpenDailyTaskModal()}>
+          <Button variant="secondary" size="sm" onClick={() => handleOpenChallengeModal()}>
             <Plus className="w-4 h-4 mr-2" />
-            Add Daily To-Do
+            Add Challenge
           </Button>
         </div>
         <div className="mb-4 flex flex-wrap gap-3">
           <Select
-            value={dailyFilter.status}
-            onChange={(e) => setDailyFilter({ ...dailyFilter, status: e.target.value })}
+            value={challengeFilter.status}
+            onChange={(e) => setChallengeFilter({ ...challengeFilter, status: e.target.value })}
             options={[
               { value: "ALL", label: "All Status" },
-              { value: "PENDING", label: "Pending" },
+              { value: "ACTIVE", label: "Active" },
               { value: "IN_PROGRESS", label: "In Progress" },
-              { value: "COMPLETED", label: "Completed" },
+              { value: "RESOLVED", label: "Resolved" },
             ]}
             className="w-36"
           />
           <Select
-            value={dailyFilter.priority}
-            onChange={(e) => setDailyFilter({ ...dailyFilter, priority: e.target.value })}
+            value={challengeFilter.priority}
+            onChange={(e) => setChallengeFilter({ ...challengeFilter, priority: e.target.value })}
             options={[
               { value: "ALL", label: "All Priority" },
               { value: "HIGH", label: "High" },
@@ -508,16 +593,15 @@ export function TasksClient({ userId, initialHierarchy, weeklyPlans }: TasksClie
             className="w-36"
           />
           <Select
-            value={dailyFilter.category}
-            onChange={(e) => setDailyFilter({ ...dailyFilter, category: e.target.value })}
+            value={challengeFilter.category}
+            onChange={(e) => setChallengeFilter({ ...challengeFilter, category: e.target.value })}
             options={[
               { value: "ALL", label: "All Categories" },
               { value: "WORK", label: "Work" },
               { value: "STUDY", label: "Study" },
               { value: "HEALTH", label: "Health" },
               { value: "PERSONAL", label: "Personal" },
-              { value: "SOCIAL", label: "Social" },
-              { value: "OTHER", label: "Other" },
+              { value: "GENERAL", label: "General" },
             ]}
             className="w-40"
           />
@@ -525,70 +609,129 @@ export function TasksClient({ userId, initialHierarchy, weeklyPlans }: TasksClie
       </div>
 
       <div className="space-y-3 mb-8">
-        {filteredDailyTasks.length > 0 ? (
-          filteredDailyTasks.map((task) => (
+        {filteredChallenges.length > 0 ? (
+          filteredChallenges.map((challenge) => (
             <Card
-              key={task.id}
+              key={challenge.id}
               hover
               className={clsx(
                 "border-l-4 !p-4",
-                priorityColors[task.priority],
-                task.status === "COMPLETED" && "opacity-60"
+                priorityColors[challenge.priority],
+                challenge.status === "RESOLVED" && "opacity-60"
               )}
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3 flex-1 min-w-0">
-                  <button
-                    onClick={() => handleDailyTaskStatusToggle(task)}
-                    className={clsx(
-                      "mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center transition-colors",
-                      task.status === "COMPLETED"
-                        ? "bg-success border-success text-white"
-                        : "border-foreground-muted hover:border-primary"
-                    )}
-                  >
-                    {task.status === "COMPLETED" && <CheckSquare className="w-3 h-3" />}
-                  </button>
+                  <AlertTriangle className={clsx(
+                    "w-5 h-5 mt-0.5",
+                    challenge.priority === "HIGH" ? "text-danger" :
+                    challenge.priority === "MEDIUM" ? "text-warning" : "text-success"
+                  )} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap mb-1">
                       <span
                         className={clsx(
                           "font-medium text-foreground",
-                          task.status === "COMPLETED" && "line-through text-foreground-muted"
+                          challenge.status === "RESOLVED" && "line-through text-foreground-muted"
                         )}
                       >
-                        {task.title}
+                        {challenge.title}
                       </span>
-                      <Badge variant={categoryColors[task.category] as any}>{task.category}</Badge>
+                      <Badge variant={(categoryColors[challenge.category] || "default") as BadgeVariant}>{challenge.category}</Badge>
                       <Badge
                         variant={
-                          task.priority === "HIGH"
+                          challenge.priority === "HIGH"
                             ? "danger"
-                            : task.priority === "MEDIUM"
+                            : challenge.priority === "MEDIUM"
                             ? "warning"
                             : "success"
                         }
                       >
-                        {task.priority}
+                        {challenge.priority}
                       </Badge>
-                      {task.status === "COMPLETED" && <Badge variant="success">Done</Badge>}
+                      {challenge.status === "RESOLVED" && <Badge variant="success">Resolved</Badge>}
                     </div>
-                    {task.description && (
-                      <p className="text-sm text-foreground-muted mb-1">{task.description}</p>
+                    {challenge.description && (
+                      <p className="text-sm text-foreground-muted mb-1">{challenge.description}</p>
                     )}
-                    <div className="flex items-center gap-4 text-xs text-foreground-muted">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        {format(new Date(task.targetDate), "MMM d, yyyy")}
-                      </span>
+                    <div className="flex items-center gap-2 text-xs text-foreground-muted">
+                      <button
+                        onClick={() => setExpandedChallenge(expandedChallenge === challenge.id ? null : challenge.id)}
+                        className="flex items-center gap-1 text-primary hover:underline"
+                      >
+                        {expandedChallenge === challenge.id ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                        {challenge.responsePlan ? "View Response Plan" : "Add Response Plan"}
+                      </button>
                     </div>
+                    
+                    {expandedChallenge === challenge.id && (
+                      <div className="mt-3 p-3 bg-background/50 rounded-lg border border-primary/20">
+                        {challenge.responsePlan ? (
+                          <>
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="font-medium text-sm flex items-center gap-2">
+                                <Shield className="w-4 h-4 text-primary" />
+                                {challenge.responsePlan.title}
+                              </h4>
+                              <span className="text-xs text-foreground-muted">
+                                {challenge.responsePlan.progress}% complete
+                              </span>
+                            </div>
+                            {challenge.responsePlan.description && (
+                              <p className="text-xs text-foreground-muted mb-2">{challenge.responsePlan.description}</p>
+                            )}
+                            <div className="w-full bg-foreground/10 rounded-full h-2 mb-3">
+                              <div 
+                                className="bg-primary h-2 rounded-full transition-all"
+                                style={{ width: `${challenge.responsePlan.progress}%` }}
+                              />
+                            </div>
+                            <div className="space-y-1 mb-3">
+                              <p className="text-xs font-medium text-foreground-secondary">Steps:</p>
+                              {JSON.parse(challenge.responsePlan.steps || "[]").map((step: string, index: number) => (
+                                <div key={index} className="flex items-start gap-2 text-xs">
+                                  <span className="text-primary font-medium">{index + 1}.</span>
+                                  <span className="text-foreground-secondary">{step}</span>
+                                </div>
+                              ))}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="range"
+                                min="0"
+                                max="100"
+                                value={challenge.responsePlan.progress}
+                                onChange={(e) => handleProgressUpdate(challenge, parseInt(e.target.value))}
+                                className="flex-1 h-2 bg-foreground/10 rounded-lg appearance-none cursor-pointer"
+                              />
+                              <span className="text-xs text-foreground-muted w-8">{challenge.responsePlan.progress}%</span>
+                            </div>
+                            <div className="flex gap-2 mt-3">
+                              <Button variant="secondary" size="sm" onClick={() => handleOpenResponsePlanModal(challenge)}>
+                                <Edit2 className="w-3 h-3 mr-1" />
+                                Edit Plan
+                              </Button>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="text-center py-4">
+                            <Shield className="w-8 h-8 mx-auto text-foreground-muted mb-2" />
+                            <p className="text-sm text-foreground-muted mb-2">No response plan yet</p>
+                            <Button variant="secondary" size="sm" onClick={() => handleOpenResponsePlanModal(challenge)}>
+                              <Plus className="w-3 h-3 mr-1" />
+                              Create Response Plan
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Button variant="ghost" size="sm" onClick={() => handleOpenDailyTaskModal(task)}>
+                  <Button variant="ghost" size="sm" onClick={() => handleOpenChallengeModal(challenge)}>
                     <Edit2 className="w-4 h-4" />
                   </Button>
-                  <Button variant="ghost" size="sm" onClick={() => handleDeleteDailyTask(task.id)}>
+                  <Button variant="ghost" size="sm" onClick={() => handleDeleteChallenge(challenge.id)}>
                     <Trash2 className="w-4 h-4 text-danger" />
                   </Button>
                 </div>
@@ -597,11 +740,11 @@ export function TasksClient({ userId, initialHierarchy, weeklyPlans }: TasksClie
           ))
         ) : (
           <Card className="text-center py-8">
-            <Calendar className="w-10 h-10 mx-auto text-foreground-muted mb-3" />
-            <p className="text-foreground-muted mb-3">No daily to-dos yet.</p>
-            <Button variant="secondary" size="sm" onClick={() => handleOpenDailyTaskModal()}>
+            <AlertTriangle className="w-10 h-10 mx-auto text-foreground-muted mb-3" />
+            <p className="text-foreground-muted mb-3">No challenges yet.</p>
+            <Button variant="secondary" size="sm" onClick={() => handleOpenChallengeModal()}>
               <Plus className="w-4 h-4 mr-2" />
-              Add Daily To-Do
+              Add Challenge
             </Button>
           </Card>
         )}
@@ -693,7 +836,7 @@ export function TasksClient({ userId, initialHierarchy, weeklyPlans }: TasksClie
                       >
                         {task.title}
                       </span>
-                      <Badge variant={categoryColors[task.category] as any}>{task.category}</Badge>
+                      <Badge variant={(categoryColors[task.category] || "default") as BadgeVariant}>{task.category}</Badge>
                       <Badge
                         variant={
                           task.priority === "HIGH"
@@ -842,28 +985,28 @@ export function TasksClient({ userId, initialHierarchy, weeklyPlans }: TasksClie
       </Modal>
 
       <Modal
-        isOpen={isDailyTaskModalOpen}
-        onClose={() => setIsDailyTaskModalOpen(false)}
-        title={editingDailyTask ? "Edit Daily To-Do" : "Create New Daily To-Do"}
+        isOpen={isChallengeModalOpen}
+        onClose={() => setIsChallengeModalOpen(false)}
+        title={editingChallenge ? "Edit Challenge" : "Create New Challenge"}
       >
         <div className="space-y-4">
           <Input
-            label="Title"
-            value={dailyFormData.title}
-            onChange={(e) => setDailyFormData({ ...dailyFormData, title: e.target.value })}
-            placeholder="Enter to-do title"
+            label="Challenge Title"
+            value={challengeFormData.title}
+            onChange={(e) => setChallengeFormData({ ...challengeFormData, title: e.target.value })}
+            placeholder="e.g., Procrastination, Time Management Issues"
           />
           <Textarea
             label="Description"
-            value={dailyFormData.description}
-            onChange={(e) => setDailyFormData({ ...dailyFormData, description: e.target.value })}
-            placeholder="Enter to-do description"
+            value={challengeFormData.description}
+            onChange={(e) => setChallengeFormData({ ...challengeFormData, description: e.target.value })}
+            placeholder="Describe the challenge you're facing..."
           />
           <div className="grid grid-cols-2 gap-4">
             <Select
               label="Priority"
-              value={dailyFormData.priority}
-              onChange={(e) => setDailyFormData({ ...dailyFormData, priority: e.target.value })}
+              value={challengeFormData.priority}
+              onChange={(e) => setChallengeFormData({ ...challengeFormData, priority: e.target.value })}
               options={[
                 { value: "HIGH", label: "High" },
                 { value: "MEDIUM", label: "Medium" },
@@ -872,50 +1015,68 @@ export function TasksClient({ userId, initialHierarchy, weeklyPlans }: TasksClie
             />
             <Select
               label="Category"
-              value={dailyFormData.category}
-              onChange={(e) => setDailyFormData({ ...dailyFormData, category: e.target.value })}
+              value={challengeFormData.category}
+              onChange={(e) => setChallengeFormData({ ...challengeFormData, category: e.target.value })}
               options={[
                 { value: "WORK", label: "Work" },
                 { value: "STUDY", label: "Study" },
                 { value: "HEALTH", label: "Health" },
                 { value: "PERSONAL", label: "Personal" },
-                { value: "SOCIAL", label: "Social" },
-                { value: "OTHER", label: "Other" },
+                { value: "GENERAL", label: "General" },
               ]}
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <Select
-              label="Status"
-              value={dailyFormData.status}
-              onChange={(e) => setDailyFormData({ ...dailyFormData, status: e.target.value })}
-              options={[
-                { value: "PENDING", label: "Pending" },
-                { value: "IN_PROGRESS", label: "In Progress" },
-                { value: "COMPLETED", label: "Completed" },
-              ]}
-            />
-            <Input
-              label="Effort Value"
-              type="number"
-              min={1}
-              max={10}
-              value={dailyFormData.effortValue}
-              onChange={(e) => setDailyFormData({ ...dailyFormData, effortValue: parseInt(e.target.value) || 1 })}
-            />
-          </div>
-          <Input
-            label="Target Date"
-            type="date"
-            value={dailyFormData.targetDate}
-            onChange={(e) => setDailyFormData({ ...dailyFormData, targetDate: e.target.value })}
-          />
           <div className="flex justify-end gap-3 pt-4">
-            <Button variant="secondary" onClick={() => setIsDailyTaskModalOpen(false)}>
+            <Button variant="secondary" onClick={() => setIsChallengeModalOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSubmitDailyTask}>
-              {editingDailyTask ? "Save Changes" : "Create To-Do"}
+            <Button onClick={handleSubmitChallenge}>
+              {editingChallenge ? "Save Changes" : "Create Challenge"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isResponsePlanModalOpen}
+        onClose={() => setIsResponsePlanModalOpen(false)}
+        title="Response Plan"
+      >
+        <div className="space-y-4">
+          <div className="p-3 bg-primary/10 border border-primary/20 rounded-lg mb-4">
+            <p className="text-sm text-primary font-medium">Challenge: {selectedChallengeForPlan?.title}</p>
+          </div>
+          <Input
+            label="Plan Title"
+            value={responsePlanFormData.title}
+            onChange={(e) => setResponsePlanFormData({ ...responsePlanFormData, title: e.target.value })}
+            placeholder="e.g., Action Plan to Overcome Procrastination"
+          />
+          <Textarea
+            label="Description"
+            value={responsePlanFormData.description}
+            onChange={(e) => setResponsePlanFormData({ ...responsePlanFormData, description: e.target.value })}
+            placeholder="Describe your response plan..."
+          />
+          <Textarea
+            label="Steps (one per line)"
+            value={responsePlanFormData.steps}
+            onChange={(e) => setResponsePlanFormData({ ...responsePlanFormData, steps: e.target.value })}
+            placeholder="Break down your plan into actionable steps&#10;1. First step&#10;2. Second step&#10;3. Third step"
+            rows={6}
+          />
+          <Input
+            label="Deadline (Optional)"
+            type="date"
+            value={responsePlanFormData.deadline}
+            onChange={(e) => setResponsePlanFormData({ ...responsePlanFormData, deadline: e.target.value })}
+          />
+          <div className="flex justify-end gap-3 pt-4">
+            <Button variant="secondary" onClick={() => setIsResponsePlanModalOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSubmitResponsePlan}>
+              {selectedChallengeForPlan?.responsePlan ? "Save Changes" : "Create Response Plan"}
             </Button>
           </div>
         </div>

@@ -33,7 +33,7 @@ model User {
 
   accounts      Account[]
   sessions      Session[]
-  dailyTasks    DailyTask[]
+  challenges    Challenge[]
 }
 
 model Account {
@@ -146,29 +146,6 @@ model Task {
   completedAt   DateTime?
 
   timeBlocks    TimeBlock[]
-}
-
-model DailyTask {
-  id            String    @id @default(cuid())
-  userId        String
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  title         String
-  description   String?
-  priority      String    @default("MEDIUM")
-  status        String    @default("PENDING")
-  effortValue   Int       @default(1)
-
-  targetDate    DateTime
-  category      String    @default("OTHER")
-  notes         String?
-
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  completedAt   DateTime?
-
-  @@index([userId])
-  @@index([targetDate])
 }
 
 model Habit {
@@ -348,4 +325,40 @@ model ChatMessage {
   @@index([senderId])
   @@index([receiverId])
   @@index([createdAt])
+}
+
+model Challenge {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?
+  category    String    @default("GENERAL")
+  status      String    @default("ACTIVE")
+  priority    String    @default("MEDIUM")
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  responsePlan ResponsePlan?
+}
+
+model ResponsePlan {
+  id            String    @id @default(cuid())
+  challengeId   String    @unique
+  challenge     Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  title         String
+  description   String?
+  steps         String    @default("[]")
+  deadline      DateTime?
+  status        String    @default("PENDING")
+  progress      Int       @default(0)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  completedAt   DateTime?
+
+  @@index([challengeId])
 }
