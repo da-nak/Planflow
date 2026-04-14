@@ -33,6 +33,7 @@ model User {
 
   accounts      Account[]
   sessions      Session[]
+  dailyTasks    DailyTask[]
 }
 
 model Account {
@@ -145,6 +146,29 @@ model Task {
   completedAt   DateTime?
 
   timeBlocks    TimeBlock[]
+}
+
+model DailyTask {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title         String
+  description   String?
+  priority      String    @default("MEDIUM")
+  status        String    @default("PENDING")
+  effortValue   Int       @default(1)
+
+  targetDate    DateTime
+  category      String    @default("OTHER")
+  notes         String?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  completedAt   DateTime?
+
+  @@index([userId])
+  @@index([targetDate])
 }
 
 model Habit {

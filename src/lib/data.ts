@@ -31,6 +31,22 @@ export type Task = {
   completedAt: Date | null;
 };
 
+export type DailyTask = {
+  id: string;
+  userId: string;
+  title: string;
+  description: string | null;
+  priority: string;
+  status: string;
+  effortValue: number;
+  targetDate: Date;
+  category: string;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  completedAt: Date | null;
+};
+
 export type WeeklyPlan = {
   id: string;
   monthlyGoalId: string;
@@ -756,4 +772,72 @@ function calculateCategoryBreakdown(
   return Array.from(categoryMap.entries())
     .map(([category, data]) => ({ category, ...data }))
     .sort((a, b) => b.total - a.total);
+}
+
+export async function getDailyTasks(userId: string, targetDate?: Date) {
+  const where: { userId: string; targetDate?: { gte: Date; lte: Date } } = { userId };
+  if (targetDate) {
+    const startOfDay = new Date(targetDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(targetDate);
+    endOfDay.setHours(23, 59, 59, 999);
+    where.targetDate = {
+      gte: startOfDay,
+      lte: endOfDay,
+    };
+  }
+  return prisma.dailyTask.findMany({
+    where,
+    orderBy: { createdAt: "desc" },
+  });
+}
+
+export async function createDailyTask(data: {
+  userId: string;
+  title: string;
+  description?: string;
+  priority?: string;
+  status?: string;
+  category?: string;
+  targetDate: Date;
+  effortValue?: number;
+}) {
+  return prisma.dailyTask.create({ data });
+}
+
+export async function updateDailyTask(id: string, data: {
+  title?: string;
+  description?: string;
+  priority?: string;
+  status?: string;
+  category?: string;
+  targetDate?: Date;
+  completedAt?: Date | null;
+  effortValue?: number;
+}) {
+  return prisma.dailyTask.update({ where: { id }, data });
+}
+
+export async function deleteDailyTask(id: string) {
+  return prisma.dailyTask.delete({ where: { id } });
+}
+
+export async function completeDailyTask(id: string) {
+  return prisma.dailyTask.update({
+    where: { id },
+    data: {
+      status: "COMPLETED",
+      completedAt: new Date(),
+    },
+  });
+}
+
+export async function uncompleteDailyTask(id: string) {
+  return prisma.dailyTask.update({
+    where: { id },
+    data: {
+      status: "PENDING",
+      completedAt: null,
+    },
+  });
 }
